@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Умный Лабиринт</title>
+    <link rel="stylesheet" href="styles.css">
+<style type="text/css" id="dcoder_stylesheet">body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+}
+
+.controls {
+    background-color: #ecf0f1;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.size-controls, .mode-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+label {
+    margin-right: 5px;
+}
+
+input {
+    width: 50px;
+    padding: 5px;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+}
+
+button {
+    padding: 8px 15px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+button.active {
+    background-color: #2ecc71;
+}
+
+button#solve-btn {
+    background-color: #9b59b6;
+}
+
+button#hint-btn {
+    background-color: #f39c12;
+}
+
+.maze-container {
+    overflow-x: auto;
+    margin-bottom: 20px;
+}
+
+#maze {
+    display: grid;
+    grid-template-columns: repeat(10, 30px);
+    grid-gap: 1px;
+    background-color: #bdc3c7;
+    border: 2px solid #7f8c8d;
+    margin: 0 auto;
+}
+
+.cell {
+    width: 30px;
+    height: 30px;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.wall {
+    background-color: #2c3e50;
+}
+
+.player {
+    background-color: #e74c3c;
+    border-radius: 50%;
+}
+
+.exit {
+    background-color: #2ecc71;
+}
+
+.path {
+    background-color: rgba(52, 152, 219, 0.3);
+}
+
+.visited {
+    background-color: rgba(155, 89, 182, 0.2);
+}
+
+.instructions {
+    background-color: #ecf0f1;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.mobile-controls {
+    display: none;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.mobile-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+    margin: 5px;
+}
+
+@media (max-width: 600px) {
+    .size-controls, .mode-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    #maze {
+        grid-template-columns: repeat(10, 25px);
+    }
+    
+    .cell {
+        width: 25px;
+        height: 25px;
+    }
+    
+    .mobile-controls {
+        display: block;
+    }
+    
+    button {
+        padding: 10px;
+        flex-grow: 1;
+    }
+}</style></head>
+<body>
+    <div class="container">
+        <h1>Умный Лабиринт</h1>
+        <div class="controls">
+            <div class="size-controls">
+                <label for="width">Ширина:</label>
+                <input type="number" id="width" min="5" max="30" value="10">
+                
+                <label for="height">Высота:</label>
+                <input type="number" id="height" min="5" max="30" value="10">
+                
+                <button id="generate-btn">Создать лабиринт</button>
+            </div>
+            <div class="mode-controls">
+                <button id="build-btn" class="active">Режим строительства</button>
+                <button id="play-btn">Режим прохождения</button>
+                <button id="solve-btn">Решить лабиринт</button>
+                <button id="hint-btn">Подсказка</button>
+                <button id="clear-btn">Очистить</button>
+            </div>
+        </div>
+        <div class="maze-container">
+            <div id="maze"></div>
+        </div>
+        <div class="instructions">
+            <h3>Инструкции:</h3>
+            <p><strong>Режим строительства:</strong> Кликните на клетку, чтобы сделать её стеной или проходом.</p>
+            <p><strong>Режим прохождения:</strong> Используйте стрелки на клавиатуре или кнопки ниже для перемещения.</p>
+            <p><strong>ИИ-помощник:</strong> Нажмите "Решить лабиринт" для автоматического прохождения или "Подсказка" для следующего шага.</p>
+            <div class="mobile-controls">
+                <button class="mobile-btn" id="up-btn">↑</button>
+                <div>
+                    <button class="mobile-btn" id="left-btn">←</button>
+                    <button class="mobile-btn" id="down-btn">↓</button>
+                    <button class="mobile-btn" id="right-btn">→</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+
+<script type="text/javascript" id="dcoder_script">document.addEventListener('DOMContentLoaded', function() {
+    const mazeElement = document.getElementById('maze');
+    const widthInput = document.getElementById('width');
+    const heightInput = document.getElementById('height');
+    const generateBtn = document.getElementById('generate-btn');
+    const buildBtn = document.getElementById('build-btn');
+    const playBtn = document.getElementById('play-btn');
+    const solveBtn = document.getElementById('solve-btn');
+    const hintBtn = document.getElementById('hint-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const upBtn = document.getElementById('up-btn');
+    const downBtn = document.getElementById('down-btn');
+    const leftBtn = document.getElementById('left-btn');
+    const rightBtn = document.getElementById('right-btn');
+    
+    let maze = [];
+    let mode = 'build'; // 'build' or 'play'
+    let playerPosition = null;
+    let exitPosition = null;
+    let solutionPath = [];
+    let currentStep = 0;
+    let visitedCells = [];
+    
+    // Инициализация лабиринта
+    function initializeMaze(width, height) {
+        mazeElement.innerHTML = '';
+        maze = [];
+        playerPosition = null;
+        exitPosition = null;
+        solutionPath = [];
+        currentStep = 0;
+        visitedCells = [];
+        
+        mazeElement.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
+        
+        for (let y = 0; y < height; y++) {
+            const row = [];
+            for (let x = 0; x < width; x++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.x = x;
+                cell.dataset.y = y;
+                
+                cell.addEventListener('click', () => handleCellClick(x, y));
+                
+                mazeElement.appendChild(cell);
+                row.push({ wall: false });
+            }
+            maze.push(row);
+        }
+    }
+    
+    // Обработка клика по клетке
+    function handleCellClick(x, y) {
+        if (mode === 'build') {
+            // В режиме строительства переключаем стену/проход
+            maze[y][x].wall = !maze[y][x].wall;
+            updateCell(x, y);
+        } else if (mode === 'play') {
+            // В режиме игры можно установить игрока или выход
+            if (!maze[y][x].wall) {
+                if (playerPosition === null) {
+                    playerPosition = { x, y };
+                    updateCell(x, y);
+                } else if (exitPosition === null && (x !== playerPosition.x || y !== playerPosition.y)) {
+                    exitPosition = { x, y };
+                    updateCell(x, y);
+                }
+            }
+        }
+    }
+    
+    // Обновление отображения клетки
+    function updateCell(x, y) {
+        const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+        cell.className = 'cell';
+        
+        if (maze[y][x].wall) {
+            cell.classList.add('wall');
+        } else if (playerPosition && x === playerPosition.x && y === playerPosition.y) {
+            cell.classList.add('player');
+        } else if (exitPosition && x === exitPosition.x && y === exitPosition.y) {
+            cell.classList.add('exit');
+        } else if (solutionPath.some(step => step.x === x && step.y === y)) {
+            cell.classList.add('path');
+        } else if (visitedCells.some(cell => cell.x === x && cell.y === y)) {
+            cell.classList.add('visited');
+        }
+    }
+    
+    // Переключение режима
+    function setMode(newMode) {
+        mode = newMode;
+        
+        if (mode === 'build') {
+            buildBtn.classList.add('active');
+            playBtn.classList.remove('active');
+        } else {
+            buildBtn.classList.remove('active');
+            playBtn.classList.add('active');
+        }
+        
+        // Очищаем решение при смене режима
+        solutionPath = [];
+        currentStep = 0;
+        visitedCells = [];
+        redrawMaze();
+    }
+    
+    // Перерисовка всего лабиринта
+    function redrawMaze() {
+        for (let y = 0; y < maze.length; y++) {
+            for (let x = 0; x < maze[y].length; x++) {
+                updateCell(x, y);
+            }
+        }
+    }
+    
+    // Движение игрока
+    function movePlayer(dx, dy) {
+        if (mode !== 'play' || !playerPosition) return;
+        
+        const newX = playerPosition.x + dx;
+        const newY = playerPosition.y + dy;
+        
+        // Проверка на выход за границы и стены
+        if (newX >= 0 && newX < maze[0].length && 
+            newY >= 0 && newY < maze.length && 
+            !maze[newY][newX].wall) {
+            
+            // Добавляем текущую позицию в посещенные
+            if (!visitedCells.some(cell => cell.x === playerPosition.x && cell.y === playerPosition.y)) {
+                visitedCells.push({...playerPosition});
+            }
+            
+            // Обновляем предыдущую позицию игрока
+            updateCell(playerPosition.x, playerPosition.y);
+            
+            // Устанавливаем новую позицию
+            playerPosition = { x: newX, y: newY };
+            updateCell(newX, newY);
+            
+            // Проверка на достижение выхода
+            if (exitPosition && newX === exitPosition.x && newY === exitPosition.y) {
+                setTimeout(() => {
+                    alert('Поздравляем! Вы прошли лабиринт!');
+                }, 100);
+            }
+        }
+    }
+    
+    // Решение лабиринта с помощью алгоритма BFS
+    function solveMaze() {
+        if (!playerPosition || !exitPosition) {
+            alert('Установите начальную позицию и выход!');
+            return;
+        }
+        
+        // Очищаем предыдущее решение
+        solutionPath = [];
+        currentStep = 0;
+        visitedCells = [];
+        redrawMaze();
+        
+        // Инициализация BFS
+        const queue = [];
+        const visited = new Set();
+        const parent = {};
+        
+        queue.push(playerPosition);
+        visited.add(`${playerPosition.x},${playerPosition.y}`);
+        
+        const directions = [
+            { dx: 1, dy: 0 },
+            { dx: -1, dy: 0 },
+            { dx: 0, dy: 1 },
+            { dx: 0, dy: -1 }
+        ];
+        
+        let found = false;
+        
+        while (queue.length > 0 && !found) {
+            const current = queue.shift();
+            
+            for (const dir of directions) {
+                const newX = current.x + dir.dx;
+                const newY = current.y + dir.dy;
+                
+                if (newX >= 0 && newX < maze[0].length && 
+                    newY >= 0 && newY < maze.length && 
+                    !maze[newY][newX].wall && 
+                    !visited.has(`${newX},${newY}`)) {
+                    
+                    visited.add(`${newX},${newY}`);
+                    parent[`${newX},${newY}`] = current;
+                    queue.push({ x: newX, y: newY });
+                    
+                    if (newX === exitPosition.x && newY === exitPosition.y) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!found) {
+            alert('Невозможно найти путь к выходу!');
+            return;
+        }
+        
+        // Восстановление пути
+        let current = exitPosition;
+        while (current.x !== playerPosition.x || current.y !== playerPosition.y) {
+            solutionPath.unshift(current);
+            current = parent[`${current.x},${current.y}`];
+        }
+        
+        // Визуализация решения
+        animateSolution();
+    }
+    
+    // Анимация решения
+    function animateSolution() {
+        if (currentStep >= solutionPath.length) {
+            // Перемещаем игрока к выходу
+            const steps = [...solutionPath];
+            const moveNext = () => {
+                if (steps.length === 0) return;
+                
+                const next = steps.shift();
+                playerPosition = { ...next };
+                redrawMaze();
+                
+                if (steps.length > 0) {
+                    setTimeout(moveNext, 200);
+                } else {
+                    setTimeout(() => {
+                        alert('ИИ прошел лабиринт!');
+                    }, 200);
+                }
+            };
+            
+            moveNext();
+            return;
+        }
+        
+        // Показываем следующий шаг
+        const step = solutionPath[currentStep];
+        visitedCells.push(step);
+        updateCell(step.x, step.y);
+        currentStep++;
+        
+        setTimeout(animateSolution, 50);
+    }
+    
+    // Показать подсказку (следующий шаг)
+    function showHint() {
+        if (!playerPosition || !exitPosition) {
+            alert('Установите начальную позицию и выход!');
+            return;
+        }
+        
+        if (solutionPath.length === 0) {
+            // Если решение еще не найдено, находим его
+            solveMaze();
+            return;
+        }
+        
+        // Находим следующий шаг для игрока
+        const nextStep = solutionPath.find(step => 
+            (step.x === playerPosition.x + 1 && step.y === playerPosition.y) ||
+            (step.x === playerPosition.x - 1 && step.y === playerPosition.y) ||
+            (step.x === playerPosition.x && step.y === playerPosition.y + 1) ||
+            (step.x === playerPosition.x && step.y === playerPosition.y - 1)
+        );
+        
+        if (nextStep) {
+            // Подсвечиваем подсказку
+            const hintCell = document.querySelector(`.cell[data-x="${nextStep.x}"][data-y="${nextStep.y}"]`);
+            hintCell.style.boxShadow = '0 0 10px 5px rgba(255, 255, 0, 0.7)';
+            setTimeout(() => {
+                hintCell.style.boxShadow = '';
+            }, 1000);
+        } else {
+            alert('Вы уже на правильном пути или достигли выхода!');
+        }
+    }
+    
+    // Обработчики событий
+    generateBtn.addEventListener('click', () => {
+        const width = parseInt(widthInput.value);
+        const height = parseInt(heightInput.value);
+        initializeMaze(width, height);
+    });
+    
+    buildBtn.addEventListener('click', () => setMode('build'));
+    playBtn.addEventListener('click', () => setMode('play'));
+    solveBtn.addEventListener('click', solveMaze);
+    hintBtn.addEventListener('click', showHint);
+    clearBtn.addEventListener('click', () => {
+        const width = maze[0] ? maze[0].length : 10;
+        const height = maze.length || 10;
+        initializeMaze(width, height);
+    });
+    
+    // Управление с клавиатуры
+    document.addEventListener('keydown', (e) => {
+        switch(e.key) {
+            case 'ArrowUp': movePlayer(0, -1); break;
+            case 'ArrowDown': movePlayer(0, 1); break;
+            case 'ArrowLeft': movePlayer(-1, 0); break;
+            case 'ArrowRight': movePlayer(1, 0); break;
+        }
+    });
+    
+    // Управление с кнопок на мобильных устройствах
+    upBtn.addEventListener('click', () => movePlayer(0, -1));
+    downBtn.addEventListener('click', () => movePlayer(0, 1));
+    leftBtn.addEventListener('click', () => movePlayer(-1, 0));
+    rightBtn.addEventListener('click', () => movePlayer(1, 0));
+    
+    // Инициализация при загрузке
+    initializeMaze(10, 10);
+});</script></body></html>

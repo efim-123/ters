@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Эволюция жизни</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .cell-type-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .cell-type-btn {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .active-cell-type {
+            box-shadow: 0 0 5px 2px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+
+        .info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            font-size: 16px;
+            flex-wrap: wrap;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            background-color: white;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            touch-action: none;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .instructions h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .console {
+            margin: 20px auto 0;
+            padding: 10px;
+            background-color: #222;
+            color: #0f0;
+            font-family: monospace;
+            height: 100px;
+            overflow-y: auto;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        .console::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .console::-webkit-scrollbar-track {
+            background: #333;
+        }
+
+        .console::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+
+        .instructions span {
+            font-weight: bold;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+
+        .stats-chart {
+            width: 100%;
+            height: 150px;
+            background-color: white;
+            border: 1px solid #ddd;
+        }
+
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button {
+                width: 100%;
+                max-width: 200px;
+            }
+            
+            #gameCanvas {
+                width: 100%;
+                height: auto;
+            }
+            
+            .info {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .cell-type-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Эволюция жизни</h1>
+        <div class="cell-type-buttons">
+            <button class="cell-type-btn active-cell-type" data-color="green">Зелёные (обычные)</button>
+            <button class="cell-type-btn" data-color="red">Красные (агрессивные)</button>
+            <button class="cell-type-btn" data-color="blue">Синие (устойчивые)</button>
+            <button class="cell-type-btn" data-color="yellow">Жёлтые (активные)</button>
+            <button class="cell-type-btn" data-color="purple">Фиолетовые (прыгающие)</button>
+            <button class="cell-type-btn" data-color="black">Чёрные (поглощающие)</button>
+            <button class="cell-type-btn" data-color="white">Белые (нейтральные)</button>
+        </div>
+        <div class="controls">
+            <button id="startBtn">Старт</button>
+            <button id="clearBtn">Очистить</button>
+            <button id="randomBtn">Случайно</button>
+            <button id="evolveBtn">Эволюция</button>
+            <button id="wallBtn">Стены: Выкл</button>
+            <button id="modeBtn">Режим: Обычный</button>
+            <div class="speed-control">
+                <label for="speed">Скорость:</label>
+                <input type="range" id="speed" min="1" max="10" value="5">
+            </div>
+        </div>
+        <div class="info">
+            <div>Поколение: <span id="generation">0</span></div>
+            <div>Живых клеток: <span id="alive">0</span></div>
+            <div>Цветовая мутация: <span id="mutation">0%</span></div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div class="console" id="gameConsole"></div>
+        <div class="stats-container">
+            <canvas class="stats-chart" id="populationChart"></canvas>
+        </div>
+        <div class="instructions">
+            <h2>Инструкция:</h2>
+            <p>- Нажмите на поле, чтобы добавить/удалить клетки</p>
+            <p>- Выберите тип клетки перед рисованием</p>
+            <p>- "Старт" - начать симуляцию</p>
+            <p>- "Очистить" - очистить поле</p>
+            <p>- "Случайно" - заполнить поле случайными клетками</p>
+            <p>- "Эволюция" - добавить мутацию цвета у потомков (15%)</p>
+            <p>- "Стены" - включить/выключить границы поля</p>
+            <p>- "Режим" - переключить между обычным режимом и "хищник-жертва"</p>
+            <h3>Цвета клеток:</h3>
+            <p>- <span style="color:rgb(100,200,100)">Зелёные</span>: обычные клетки (по умолчанию)</p>
+            <p>- <span style="color:rgb(200,100,100)">Красные</span>: агрессивные (чаще выживают)</p>
+            <p>- <span style="color:rgb(100,100,200)">Синие</span>: устойчивые (реже умирают)</p>
+            <p>- <span style="color:rgb(200,200,100)">Жёлтые</span>: активные (чаще размножаются)</p>
+            <p>- <span style="color:rgb(150,100,200)">Фиолетовые</span>: могут "прыгать" на соседние клетки</p>
+            <p>- <span style="color:rgb(50,50,50)">Чёрные</span>: поглощают соседние клетки</p>
+            <p>- <span style="color:rgb(200,200,200)">Белые</span>: нейтральные, устойчивые к мутациям</p>
+            <p>- Цвета смешиваются при размножении и мутируют</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const startBtn = document.getElementById('startBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const randomBtn = document.getElementById('randomBtn');
+            const evolveBtn = document.getElementById('evolveBtn');
+            const wallBtn = document.getElementById('wallBtn');
+            const modeBtn = document.getElementById('modeBtn');
+            const speedControl = document.getElementById('speed');
+            const generationDisplay = document.getElementById('generation');
+            const aliveDisplay = document.getElementById('alive');
+            const mutationDisplay = document.getElementById('mutation');
+            const gameConsole = document.getElementById('gameConsole');
+            const cellTypeButtons = document.querySelectorAll('.cell-type-btn');
+            const populationChart = document.getElementById('populationChart');
+            const chartCtx = populationChart.getContext('2d');
+            
+            // Настройки игры
+            const cellSize = 10;
+            let rows, cols;
+            let grid = [];
+            let nextGrid = [];
+            let isRunning = false;
+            let generation = 0;
+            let animationId = null;
+            let mutationRate = 0;
+            let isDrawing = false;
+            let colorMutation = false;
+            let lastConsoleUpdate = 0;
+            let wallsEnabled = false;
+            let predatorPreyMode = false;
+            let currentCellType = 'green';
+            let populationHistory = [];
+            const maxHistoryLength = 50;
+            
+            // Цвета клеток
+            const cellColors = {
+                green: [100, 200, 100],
+                red: [200, 100, 100],
+                blue: [100, 100, 200],
+                yellow: [200, 200, 100],
+                purple: [150, 100, 200],
+                black: [50, 50, 50],
+                white: [200, 200, 200]
+            };
+            
+            let colors = [];
+            
+            // Инициализация
+            function init() {
+                resizeCanvas();
+                createGrid();
+                render();
+                initChart();
+                
+                // Обработчики событий
+                startBtn.addEventListener('click', toggleGame);
+                clearBtn.addEventListener('click', clearGrid);
+                randomBtn.addEventListener('click', randomizeGrid);
+                evolveBtn.addEventListener('click', toggleColorMutation);
+                wallBtn.addEventListener('click', toggleWalls);
+                modeBtn.addEventListener('click', toggleMode);
+                window.addEventListener('resize', resizeCanvas);
+                
+                // Обработчики для выбора типа клетки
+                cellTypeButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        cellTypeButtons.forEach(b => b.classList.remove('active-cell-type'));
+                        btn.classList.add('active-cell-type');
+                        currentCellType = btn.dataset.color;
+                        addToConsole(`Выбран тип клетки: ${btn.textContent}`);
+                    });
+                });
+                
+                // Обработчики для рисования клеток
+                canvas.addEventListener('mousedown', startDrawing);
+                canvas.addEventListener('mouseup', stopDrawing);
+                canvas.addEventListener('mousemove', drawCells);
+                
+                canvas.addEventListener('touchstart', handleTouch);
+                canvas.addEventListener('touchmove', handleTouch);
+                
+                // Первое сообщение в консоль
+                addToConsole("Игра 'Жизнь' инициализирована. Добавьте клетки или нажмите 'Случайно'.");
+            }
+            
+            function initChart() {
+                populationChart.width = populationChart.offsetWidth;
+                populationChart.height = populationChart.offsetHeight;
+            }
+            
+            function updateChart() {
+                if (populationHistory.length < 2) return;
+                
+                const colorsOrder = ['green', 'red', 'blue', 'yellow', 'purple', 'black', 'white'];
+                const datasets = colorsOrder.map(color => {
+                    return {
+                        label: color,
+                        data: populationHistory.map(entry => entry[color] || 0),
+                        borderColor: `rgb(${cellColors[color].join(',')})`,
+                        backgroundColor: `rgba(${cellColors[color].join(',')}, 0.2)`,
+                        borderWidth: 1,
+                        fill: true
+                    };
+                });
+                
+                // Очищаем предыдущий график
+                chartCtx.clearRect(0, 0, populationChart.width, populationChart.height);
+                
+                // Рисуем новый график
+                const padding = 20;
+                const graphWidth = populationChart.width - padding * 2;
+                const graphHeight = populationChart.height - padding * 2;
+                
+                // Находим максимальное значение для масштабирования
+                let maxValue = 1;
+                populationHistory.forEach(entry => {
+                    const total = Object.values(entry).reduce((sum, val) => sum + val, 0);
+                    if (total > maxValue) maxValue = total;
+                });
+                
+                // Рисуем оси
+                chartCtx.strokeStyle = '#333';
+                chartCtx.lineWidth = 1;
+                chartCtx.beginPath();
+                chartCtx.moveTo(padding, padding);
+                chartCtx.lineTo(padding, padding + graphHeight);
+                chartCtx.lineTo(padding + graphWidth, padding + graphHeight);
+                chartCtx.stroke();
+                
+                // Рисуем графики для каждого цвета
+                colorsOrder.forEach((color, idx) => {
+                    if (populationHistory.some(entry => entry[color] > 0)) {
+                        chartCtx.strokeStyle = `rgb(${cellColors[color].join(',')})`;
+                        chartCtx.lineWidth = 2;
+                        chartCtx.beginPath();
+                        
+                        populationHistory.forEach((entry, i) => {
+                            const x = padding + (i / (populationHistory.length - 1)) * graphWidth;
+                            const y = padding + graphHeight - (entry[color] || 0) / maxValue * graphHeight;
+                            
+                            if (i === 0) {
+                                chartCtx.moveTo(x, y);
+                            } else {
+                                chartCtx.lineTo(x, y);
+                            }
+                        });
+                        
+                        chartCtx.stroke();
+                    }
+                });
+            }
+            
+            function addToConsole(message) {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString();
+                gameConsole.innerHTML += `[${timeString}] ${message}\n`;
+                gameConsole.scrollTop = gameConsole.scrollHeight;
+            }
+            
+            function updateConsoleStats() {
+                const now = Date.now();
+                if (now - lastConsoleUpdate < 1000) return; // Обновляем не чаще 1 раза в секунду
+                lastConsoleUpdate = now;
+                
+                let aliveCount = 0;
+                let colorStats = {
+                    green: 0,
+                    red: 0,
+                    blue: 0,
+                    yellow: 0,
+                    purple: 0,
+                    black: 0,
+                    white: 0,
+                    other: 0
+                };
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (grid[i][j] === 1) {
+                            aliveCount++;
+                            const [r, g, b] = colors[i][j];
+                            
+                            // Определяем тип клетки по цвету
+                            let found = false;
+                            for (const [color, [cr, cg, cb]] of Object.entries(cellColors)) {
+                                const diff = Math.abs(r - cr) + Math.abs(g - cg) + Math.abs(b - cb);
+                                if (diff < 50) {
+                                    colorStats[color]++;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) colorStats.other++;
+                        }
+                    }
+                }
+                
+                // Сохраняем статистику для графика
+                populationHistory.push({...colorStats});
+                if (populationHistory.length > maxHistoryLength) {
+                    populationHistory.shift();
+                }
+                updateChart();
+                
+                let statsMessage = `Клеток: ${aliveCount} | `;
+                for (const [color, count] of Object.entries(colorStats)) {
+                    if (color !== 'other' && count > 0) {
+                        statsMessage += `${color}: ${count} | `;
+                    }
+                }
+                
+                if (gameConsole.lastMessage !== statsMessage) {
+                    gameConsole.lastMessage = statsMessage;
+                    addToConsole(statsMessage);
+                }
+            }
+            
+            function resizeCanvas() {
+                const maxWidth = Math.min(window.innerWidth - 40, 800);
+                const maxHeight = Math.min(window.innerHeight - 450, 600);
+                
+                const cellAspectRatio = 1;
+                const width = Math.floor(maxWidth / cellSize) * cellSize;
+                const height = Math.floor(width * cellAspectRatio);
+                
+                if (height > maxHeight) {
+                    const adjustedWidth = Math.floor(maxHeight / cellAspectRatio / cellSize) * cellSize;
+                    canvas.width = adjustedWidth;
+                    canvas.height = Math.floor(adjustedWidth * cellAspectRatio);
+                } else {
+                    canvas.width = width;
+                    canvas.height = height;
+                }
+                
+                rows = Math.floor(canvas.height / cellSize);
+                cols = Math.floor(canvas.width / cellSize);
+                
+                createGrid();
+                render();
+            }
+            
+            function createGrid() {
+                grid = new Array(rows);
+                colors = new Array(rows);
+                
+                for (let i = 0; i < rows; i++) {
+                    grid[i] = new Array(cols).fill(0);
+                    colors[i] = new Array(cols);
+                    
+                    for (let j = 0; j < cols; j++) {
+                        colors[i][j] = [...cellColors.green];
+                    }
+                }
+                
+                generation = 0;
+                populationHistory = [];
+                updateInfo();
+            }
+            
+            function clearGrid() {
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        grid[i][j] = 0;
+                        colors[i][j] = [...cellColors.green];
+                    }
+                }
+                
+                generation = 0;
+                populationHistory = [];
+                updateInfo();
+                render();
+                addToConsole("Поле очищено");
+            }
+            
+            function randomizeGrid() {
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        grid[i][j] = Math.random() > 0.7 ? 1 : 0;
+                        if (grid[i][j]) {
+                            // Случайный тип клетки
+                            const colorKeys = Object.keys(cellColors);
+                            const randomColor = colorKeys[Math.floor(Math.random() * colorKeys.length)];
+                            colors[i][j] = [...cellColors[randomColor]];
+                        } else {
+                            colors[i][j] = [...cellColors.green];
+                        }
+                    }
+                }
+                
+                generation = 0;
+                populationHistory = [];
+                updateInfo();
+                render();
+                addToConsole("Поле заполнено случайными клетками");
+            }
+            
+            function toggleGame() {
+                isRunning = !isRunning;
+                startBtn.textContent = isRunning ? 'Пауза' : 'Старт';
+                
+                if (isRunning) {
+                    runGame();
+                    addToConsole("Симуляция запущена");
+                } else {
+                    cancelAnimationFrame(animationId);
+                    addToConsole("Симуляция приостановлена");
+                }
+            }
+            
+            function toggleColorMutation() {
+                colorMutation = !colorMutation;
+                evolveBtn.textContent = colorMutation ? 'Обычные' : 'Эволюция';
+                mutationRate = colorMutation ? 15 : 0;
+                mutationDisplay.textContent = colorMutation ? mutationRate + '%' : '0%';
+                addToConsole(colorMutation ? "Включена эволюция (мутация 15%)" : "Эволюция выключена");
+            }
+            
+            function toggleWalls() {
+                wallsEnabled = !wallsEnabled;
+                wallBtn.textContent = wallsEnabled ? 'Стены: Вкл' : 'Стены: Выкл';
+                addToConsole(wallsEnabled ? "Границы поля включены" : "Границы поля выключены");
+            }
+            
+            function toggleMode() {
+                predatorPreyMode = !predatorPreyMode;
+                modeBtn.textContent = predatorPreyMode ? 'Режим: Хищник-жертва' : 'Режим: Обычный';
+                addToConsole(predatorPreyMode ? "Режим 'Хищник-жертва' включен" : "Обычный режим включен");
+            }
+            
+            function runGame() {
+                if (!isRunning) return;
+                
+                computeNextGeneration();
+                render();
+                updateInfo();
+                updateConsoleStats();
+                
+                const speed = 11 - speedControl.value;
+                animationId = setTimeout(() => {
+                    requestAnimationFrame(runGame);
+                }, 1000 / speed);
+            }
+            
+            function computeNextGeneration() {
+                nextGrid = new Array(rows);
+                let nextColors = new Array(rows);
+                
+                for (let i = 0; i < rows; i++) {
+                    nextGrid[i] = new Array(cols).fill(0);
+                    nextColors[i] = new Array(cols);
+                }
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const neighbors = countNeighbors(i, j);
+                        const neighborColors = getNeighborColors(i, j);
+                        
+                        if (grid[i][j] === 1) {
+                            // Клетка выживает
+                            let survives = (neighbors === 2 || neighbors === 3);
+                            
+                            // Особые свойства цветов
+                            const [r, g, b] = colors[i][j];
+                            
+                            // Красные клетки (агрессивные) выживают чаще
+                            if (r > g + 30 && r > b + 30 && neighbors >= 1 && neighbors <= 4) {
+                                survives = true;
+                            }
+                            // Синие клетки (устойчивые) умирают реже
+                            else if (b > r + 30 && b > g + 30 && neighbors >= 1 && neighbors <= 3) {
+                                survives = true;
+                            }
+                            // Желтые клетки (активные) чаще размножаются (обрабатывается ниже)
+                            // Фиолетовые клетки (прыгающие) могут перемещаться
+                            else if (Math.abs(r - 150) < 30 && Math.abs(g - 100) < 30 && Math.abs(b - 200) < 30) {
+                                if (neighbors >= 2 && neighbors <= 3) {
+                                    // С шансом 30% прыгает на случайную соседнюю клетку
+                                    if (Math.random() < 0.3) {
+                                        const emptyNeighbors = [];
+                                        for (let ni = -1; ni <= 1; ni++) {
+                                            for (let nj = -1; nj <= 1; nj++) {
+                                                if (ni === 0 && nj === 0) continue;
+                                                
+                                                const nRow = wallsEnabled ? 
+                                                    (i + ni < 0 || i + ni >= rows ? -1 : i + ni) : 
+                                                    (i + ni + rows) % rows;
+                                                const nCol = wallsEnabled ? 
+                                                    (j + nj < 0 || j + nj >= cols ? -1 : j + nj) : 
+                                                    (j + nj + cols) % cols;
+                                                
+                                                if (nRow >= 0 && nCol >= 0 && grid[nRow][nCol] === 0) {
+                                                    emptyNeighbors.push([nRow, nCol]);
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (emptyNeighbors.length > 0) {
+                                            const [newRow, newCol] = emptyNeighbors[Math.floor(Math.random() * emptyNeighbors.length)];
+                                            nextGrid[newRow][newCol] = 1;
+                                            nextColors[newRow][newCol] = [...colors[i][j]];
+                                            survives = false;
+                                        }
+                                    }
+                                }
+                            }
+                            // Черные клетки (поглощающие) могут поглотить соседа
+                            else if (r < 60 && g < 60 && b < 60) {
+                                if (neighbors >= 1) {
+                                    // С шансом 20% поглотить случайного соседа
+                                    if (Math.random() < 0.2) {
+                                        const livingNeighbors = [];
+                                        for (let ni = -1; ni <= 1; ni++) {
+                                            for (let nj = -1; nj <= 1; nj++) {
+                                                if (ni === 0 && nj === 0) continue;
+                                                
+                                                const nRow = wallsEnabled ? 
+                                                    (i + ni < 0 || i + ni >= rows ? -1 : i + ni) : 
+                                                    (i + ni + rows) % rows;
+                                                const nCol = wallsEnabled ? 
+                                                    (j + nj < 0 || j + nj >= cols ? -1 : j + nj) : 
+                                                    (j + nj + cols) % cols;
+                                                
+                                                if (nRow >= 0 && nCol >= 0 && grid[nRow][nCol] === 1) {
+                                                    livingNeighbors.push([nRow, nCol]);
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (livingNeighbors.length > 0) {
+                                            const [victimRow, victimCol] = livingNeighbors[Math.floor(Math.random() * livingNeighbors.length)];
+                                            nextGrid[victimRow][victimCol] = 0;
+                                            // Черная клетка становится немного светлее после поглощения
+                                            nextColors[i][j] = [
+                                                Math.min(255, colors[i][j][0] + 10),
+                                                Math.min(255, colors[i][j][1] + 10),
+                                                Math.min(255, colors[i][j][2] + 10)
+                                            ];
+                                        }
+                                    }
+                                }
+                            }
+                            // Белые клетки (нейтральные) устойчивы к изменениям
+                            else if (r > 180 && g > 180 && b > 180) {
+                                if (neighbors >= 1 && neighbors <= 4) {
+                                    survives = true;
+                                }
+                            }
+                            
+                            nextGrid[i][j] = survives ? 1 : 0;
+                        } else {
+                            // Мертвая клетка оживает
+                            let born = neighbors === 3;
+                            
+                            // Желтые клетки чаще размножаются
+                            if (!born) {
+                                for (let ni = -1; ni <= 1; ni++) {
+                                    for (let nj = -1; nj <= 1; nj++) {
+                                        if (ni === 0 && nj === 0) continue;
+                                        
+                                        const nRow = wallsEnabled ? 
+                                            (i + ni < 0 || i + ni >= rows ? -1 : i + ni) : 
+                                            (i + ni + rows) % rows;
+                                        const nCol = wallsEnabled ? 
+                                            (j + nj < 0 || j + nj >= cols ? -1 : j + nj) : 
+                                            (j + nj + cols) % cols;
+                                        
+                                        if (nRow >= 0 && nCol >= 0 && grid[nRow][nCol] === 1) {
+                                            const [nr, ng, nb] = colors[nRow][nCol];
+                                            // Желтые соседи увеличивают шанс рождения
+                                            if (nr + ng > nb * 1.5 && Math.abs(nr - ng) < 30) {
+                                                if (Math.random() < 0.2) born = true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Режим "хищник-жертва"
+                            if (predatorPreyMode && born) {
+                                const predatorNeighbors = neighborColors.filter(([r, g, b]) => r > g + 30 && r > b + 30).length;
+                                const preyNeighbors = neighborColors.filter(([r, g, b]) => g > r + 30 && g > b + 30).length;
+                                
+                                // Красные клетки (хищники) могут убить зеленых (жертв)
+                                if (predatorNeighbors > 0 && preyNeighbors > 0) {
+                                    if (Math.random() < predatorNeighbors / 5) {
+                                        born = false;
+                                    }
+                                }
+                            }
+                            
+                            nextGrid[i][j] = born ? 1 : 0;
+                        }
+                        
+                        // Если клетка живая в следующем поколении, наследуем или мутируем цвет
+                        if (nextGrid[i][j] === 1) {
+                            if (grid[i][j] === 1) {
+                                // Клетка выжила - сохраняем цвет
+                                nextColors[i][j] = [...colors[i][j]];
+                            } else {
+                                // Новая клетка - наследуем цвет от соседей или мутируем
+                                nextColors[i][j] = inheritOrMutateColor(i, j);
+                            }
+                        }
+                    }
+                }
+            
+                grid = nextGrid;
+                colors = nextColors;
+                generation++;
+            }
+            
+            function countNeighbors(row, col) {
+                let count = 0;
+                
+                for (let i = -1; i <= 1; i++) {
+                    for (let j = -1; j <= 1; j++) {
+                        if (i === 0 && j === 0) continue;
+                        
+                        const newRow = wallsEnabled ? 
+                            (row + i < 0 || row + i >= rows ? -1 : row + i) : 
+                            (row + i + rows) % rows;
+                        const newCol = wallsEnabled ? 
+                            (col + j < 0 || col + j >= cols ? -1 : col + j) : 
+                            (col + j + cols) % cols;
+                        
+                        if (newRow >= 0 && newCol >= 0) {
+                            count += grid[newRow][newCol];
+                        }
+                    }
+                }
+                
+                return count;
+            }
+            
+            function getNeighborColors(row, col) {
+                let neighborColors = [];
+                
+                for (let i = -1; i <= 1; i++) {
+                    for (let j = -1; j <= 1; j++) {
+                        if (i === 0 && j === 0) continue;
+                        
+                        const newRow = wallsEnabled ? 
+                            (row + i < 0 || row + i >= rows ? -1 : row + i) : 
+                            (row + i + rows) % rows;
+                        const newCol = wallsEnabled ? 
+                            (col + j < 0 || col + j >= cols ? -1 : col + j) : 
+                            (col + j + cols) % cols;
+                        
+                        if (newRow >= 0 && newCol >= 0 && grid[newRow][newCol] === 1) {
+                            neighborColors.push(colors[newRow][newCol]);
+                        }
+                    }
+                }
+                
+                return neighborColors;
+            }
+            
+            function inheritOrMutateColor(row, col) {
+                let neighborColors = getNeighborColors(row, col);
+                
+                if (neighborColors.length === 0) return [...cellColors.green];
+                
+                // Вычисляем средний цвет соседей
+                let totalR = 0, totalG = 0, totalB = 0;
+                neighborColors.forEach(color => {
+                    totalR += color[0];
+                    totalG += color[1];
+                    totalB += color[2];
+                });
+                
+                let newColor = [
+                    Math.round(totalR / neighborColors.length),
+                    Math.round(totalG / neighborColors.length),
+                    Math.round(totalB / neighborColors.length)
+                ];
+                
+                // Применяем мутацию с заданной вероятностью
+                if (colorMutation && Math.random() * 100 < mutationRate) {
+                    newColor = mutateColor(newColor);
+                    addToConsole(`Произошла мутация цвета: [${newColor.join(', ')}]`);
+                }
+                
+                return newColor;
+            }
+            
+            function mutateColor(color) {
+                const mutationAmount = 50;
+                const r = Math.max(0, Math.min(255, color[0] + (Math.random() * mutationAmount * 2 - mutationAmount)));
+                const g = Math.max(0, Math.min(255, color[1] + (Math.random() * mutationAmount * 2 - mutationAmount)));
+                const b = Math.max(0, Math.min(255, color[2] + (Math.random() * mutationAmount * 2 - mutationAmount)));
+                
+                return [r, g, b];
+            }
+            
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Рисуем сетку
+                ctx.strokeStyle = '#eee';
+                ctx.lineWidth = 0.5;
+                
+                for (let i = 0; i <= rows; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i * cellSize);
+                    ctx.lineTo(canvas.width, i * cellSize);
+                    ctx.stroke();
+                }
+                
+                for (let j = 0; j <= cols; j++) {
+                    ctx.beginPath();
+                    ctx.moveTo(j * cellSize, 0);
+                    ctx.lineTo(j * cellSize, canvas.height);
+                    ctx.stroke();
+                }
+                
+                // Рисуем живые клетки
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (grid[i][j] === 1) {
+                            const [r, g, b] = colors[i][j];
+                            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                            ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                        }
+                    }
+                }
+            }
+            
+            function updateInfo() {
+                generationDisplay.textContent = generation;
+                
+                let aliveCount = 0;
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        aliveCount += grid[i][j];
+                    }
+                }
+                
+                aliveDisplay.textContent = aliveCount;
+            }
+            
+            // Функции для рисования клеток
+            function startDrawing(e) {
+                e.preventDefault();
+                isDrawing = true;
+                drawCell(e);
+            }
+            
+            function stopDrawing() {
+                isDrawing = false;
+            }
+            
+            function drawCells(e) {
+                if (isDrawing) {
+                    drawCell(e);
+                }
+            }
+            
+            function handleTouch(e) {
+                e.preventDefault();
+                if (e.touches.length > 0) {
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent(
+                        e.type === 'touchstart' ? 'mousedown' : 'mousemove',
+                        {
+                            clientX: touch.clientX,
+                            clientY: touch.clientY
+                        }
+                    );
+                    canvas.dispatchEvent(mouseEvent);
+                }
+            }
+            
+            function drawCell(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const col = Math.floor(x / cellSize);
+                const row = Math.floor(y / cellSize);
+                
+                if (row >= 0 && row < rows && col >= 0 && col < cols) {
+                    // Инвертируем состояние клетки
+                    const wasAlive = grid[row][col];
+                    grid[row][col] = wasAlive ? 0 : 1;
+                    
+                    if (grid[row][col] && !wasAlive) {
+                        // Если клетка стала живой, задаем ей выбранный цвет
+                        colors[row][col] = [...cellColors[currentCellType]];
+                        addToConsole(`Добавлена ${currentCellType} клетка в [${row},${col}]`);
+                    } else if (!grid[row][col] && wasAlive) {
+                        addToConsole(`Удалена клетка из [${row},${col}]`);
+                    }
+                    
+                    render();
+                    updateInfo();
+                }
+            }
+            
+            // Запускаем игру
+            init();
+        });
+    </script>
+
+</body></html>
